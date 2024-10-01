@@ -22,12 +22,7 @@ bash getdat.sh ${WD} ${ACC} ${SRR}
 
 #call variantcall.sh to run variantcall
 #Usage: bash variantcall.sh [WD] [ACC] [SRR]
-#bash variantcall.sh ${WD} ${ACC} ${SRR}
-
-#call isualize_variantcall_igv.sh to visualize results
-#Usage: bash visualize_variantcall_igv.sh [WD] [ACC] [SRR]
-#bash visualize_variantcall_igv.sh ${WD} ${ACC} ${SRR}
-
+bash variantcall.sh ${WD} ${ACC} ${SRR}
 
 DIR=${WD}/data/
 

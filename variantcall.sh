@@ -39,10 +39,10 @@ bwa mem -R $TAG $REF $R1 $R2 | samtools sort > $BAM
 samtools index $BAM
 
 # Compute the genotypes from the alignment file | Call the variants with bcftools.
-bcftools mpileup -O v -f $REF $BAM | bcftools call --ploidy 1 -vm -O v > ${WD}variants_bcftools.vcf
+bcftools mpileup -O v -f $REF $BAM | bcftools call --ploidy 1 -vm -O v > ${WD}/variants_bcftools.vcf
 
 # Compute the genotypes from the alignment file + Call the variants with freebayes.
-freebayes -f $REF $BAM > ${WD}variants_fb.vcf
+freebayes -f $REF $BAM > ${WD}/variants_fb.vcf
 
 # Compute the genotypes from the alignment file + Call the variants with GATK.
 
@@ -50,4 +50,4 @@ freebayes -f $REF $BAM > ${WD}variants_fb.vcf
 picard CreateSequenceDictionary REFERENCE=$REF  OUTPUT=${DIR}refs/$ACC.dict
 
 # Generate the variants.
-gatk HaplotypeCaller -R $REF -I $BAM -O ${WD}variants_gatk.vcf
+gatk HaplotypeCaller -R $REF -I $BAM -O ${WD}/variants_gatk.vcf

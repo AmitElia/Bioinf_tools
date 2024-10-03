@@ -32,7 +32,7 @@ BAM=${DIR}alignments/${SRR}.bam
 SEQ=${DIR}sequences/
 
 # file path for gff files
-GFF=${DIR}refs/${ACC}.gff
+GFF=${DIR}refs/${ACC}.gffc
 
 # Obtain sequences
 efetch -db nuccore -format fasta -id ${ACC} | seqret -filter -sid ${ACC} > ${REF}

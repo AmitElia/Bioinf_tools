@@ -1,0 +1,149 @@
+#
+# A variant calling Makefile
+#
+
+# Set SRA number
+SRR = SRR1972739
+
+# The accession number.
+ACC = AF086833
+
+# Reference genome.
+REF = refs/${ACC}.fa
+
+# The GFF file
+GFF = refs/${ACC}.gff
+
+# Number of reads to get
+N = 10000
+
+# Downloaded reads.
+R1 = reads/${SRR}_1.fastq
+R2 = reads/${SRR}_2.fastq
+
+# The resulting alignment file.
+BAM = bam/${SRR}.bam
+
+# The resulting variant file.
+VCF = vcf/${SRR}.vcf.gz
+
+# Merged VCF file
+ALL_VCF = merged/all-variants.vcf.gz
+
+# -- Nothing needs to change below --
+
+SHELL := bash
+.SHELLFLAGS := -eu -o pipefail -c
+.DELETE_ON_ERROR:
+MAKEFLAGS += --warn-undefined-variables
+MAKEFLAGS += --no-builtin-rules
+
+help:
+	@echo "#"
+	@echo "# Usage:"
+	@echo "#"
+	@echo "# ACC=${ACC} SRR=${SRR}"
+	@echo "#"
+	@echo "# make init - initialize the genome"
+	@echo "#"
+	@echo "# make run - get fastq, trim, align, and call variants"
+	@echo "#"
+	@echo "# make merge - merge variants from all samples"
+	@echo "#"
+
+# Downloads the reference genome.
+${REF}:
+	@echo "# Get genome data ACC=${ACC}"
+	mkdir -p $(dir ${REF})
+	bio fetch ${ACC} -format fasta > ${REF}
+
+# Downloads the reference genome.
+${GFF}:
+	@echo "# Get genome data ACC=${ACC}"
+	mkdir -p $(dir ${REF})
+	bio fetch ${ACC} -format gff > ${GFF}
+
+# Triggers the genome download.
+genome: ${REF} ${GFF}
+	@ls -lh ${REF}
+	@ls -lh ${GFF}
+
+# Index the genome with bwa and samtools.
+${REF}.bwt: ${REF}
+	@echo "# Build bwa index for the reference genome ${REF}"
+	bwa index ${REF}
+	@echo "# Build IGV index for the reference genome ${REF}"
+	samtools faidx ${REF}
+
+# Trigger the indexing.
+index : ${REF}.bwt
+	@ls -lh ${REF}.bwt
+
+# Download the FASTQ files.
+${R1}:
+	mkdir -p reads
+
+	@echo "# Obtain the FASTQ sequences for the SRR=${SRR}"
+	fastq-dump -X ${N} --outdir reads --split-files ${SRR} 
+
+# Trigger the download.
+fastq: ${R1}
+	@ls -lh ${R1}
+
+# Align the reads.
+${BAM}:
+	mkdir -p $(dir ${BAM})
+	bwa mem ${REF} ${R1} ${R2} | samtools sort > ${BAM}
+	samtools index ${BAM}
+	samtools flagstat ${BAM}
+
+
+# Trigger the alignment.
+align: ${BAM} 
+	@ls -lh ${BAM}
+
+align!: ${BAM}
+	rm -f ${BAM}
+
+# Compute the VCF file.
+${VCF}: ${BAM}
+	# Create the directory for the VCF file.
+	mkdir -p $(dir ${VCF})
+
+	# Add more annotations than the default. Normalize the variants.
+	bcftools mpileup \
+		--annotate 'INFO/AD,FORMAT/DP,FORMAT/AD,FORMAT/ADF,FORMAT/ADR,FORMAT/SP' \
+		-O v -f ${REF} ${BAM} | \
+		bcftools call --ploidy 2 --annotate 'FORMAT/GQ' -mv -O v | \
+		bcftools norm -f ${REF} -d all -O z -o ${VCF} 
+	
+	# Index the VCF file.
+	bcftools index -t ${VCF}
+
+# Trigger the VCF file generation.
+vcf: ${VCF}
+	@ls -lh ${VCF}
+
+# Merge all VCF files
+merge:
+	@echo "# Merge all VCF files into ${ALL_VCF}"
+	mkdir -p $(dir ${ALL_VCF})
+	bcftools merge -o ${ALL_VCF} vcf/*.vcf.gz
+	bcftools index -t ${ALL_VCF}
+
+# Initialize the genome.
+init: genome index
+
+# Runs the data related pipeline.
+run: fastq trim align vcf
+
+# Undo the run results.
+run!:
+	rm -rf ${BAM} ${VCF} ${R1} ${R2}
+
+# Clean up all results.
+clean:
+	rm -rf bam reads trim vcf refs merged
+
+# Inform make that these targets are not files.
+.PHONY: genome index fastq trim align vcf run trim merge clean

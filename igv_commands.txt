@@ -39,3 +39,8 @@ genome /home/aelia/scripts/variantcall/test1/data/refs/AF086833.fa
 load /home/aelia/scripts/variantcall/test1/data/alignments/SRR1553500.bam
 load /home/aelia/scripts/variantcall/test1/data/refs/AF086833.gff
 expand
+new
+genome /home/aelia/scripts/variantcall/test1/data/refs/AF086833.fa
+load /home/aelia/scripts/variantcall/test1/data/alignments/SRR1553500.bam
+load /home/aelia/scripts/variantcall/test1/data/refs/AF086833.gff
+expand

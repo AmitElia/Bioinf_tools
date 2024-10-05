@@ -22,9 +22,6 @@ LINES := $(shell cat ${RIDS})
 # Reference genome.
 REF = dat/refs/${ACC}.fa
 
-SNPEFF = ~/micromamba/envs/bioinfo/share/snpeff-5.0-1/snpEff.config
-EXISTS = false
-
 # The index file for the reference
 IDX = ${REF}.amb
 
@@ -46,8 +43,6 @@ VCF = out/vcf/${SRR}_${ACC}.vcf.gz
 
 # Merged VCF file
 ALL_VCF = out/merged/all_variants_${ACC}_${PRJN}.vcf.gz
-ALL_VCF_ANN = out/merged/all_variants_${ACC}_${PRJN}_annotated.vcf
-ANN_STATS = out/merged/snpEff_summary_${ACC}_${PRJN}.html
 
 # -- Nothing needs to change below --
 SHELL := bash
@@ -61,21 +56,17 @@ help:
 	@echo "#"
 	@echo "# Usage:"
 	@echo "#"
-	@echo "# make init run ACC=${ACC} SRR=${SRR} N=${N}"
+	@echo "# ACC=${ACC} SRR=${SRR} N=${N} PRJN=${PRJN} NR=${NR}"
 	@echo "#"
-	@echo "# make init runbatch ACC=${ACC} N=${N} PRJN=${PRJN} NR=${NR}"
+	@echo "# make init - initialize the genome"
 	@echo "#"
-	@echo "# make annotate ACC=${ACC} PRJN=${PRJN}"
+	@echo "# make run - get fastq, trim, align, and call variants"
 	@echo "#"
-	@echo "# make init - initialize the genome."
+	@echo "# make runbatch - fastq, trim, align, and call variants based on PRJN bioproject number"
 	@echo "#"
-	@echo "# make run - get fastq, trim, align, and call variants."
+	@echo "# make runlist - fastq, trim, align, and call variants based on a runlist of SRRs"
 	@echo "#"
-	@echo "# make runbatch - fastq, trim, align, and call variants based on PRJN bioproject number."
-	@echo "#"
-	@echo "# make annotate - creates custom annotation based on ACC number."
-	@echo "#"
-	@echo "# make clean - remove all files created."
+	@echo "# make clean - remove all files created"
 	@echo "#"
 
 
@@ -156,13 +147,6 @@ ${VCF}: ${BAM}
 vcf: ${VCF}
 	@ls -lh ${VCF}
 
-# Merge all VCF files
-merge:
-	@echo "# Merge all VCF files into ${ALL_VCF}"
-	mkdir -p $(dir ${ALL_VCF})
-	bcftools merge -o ${ALL_VCF} vcf/*.vcf.gz
-	bcftools index -t ${ALL_VCF}
-
 
 # Initialize the genome and index.
 init: genome index
@@ -191,31 +175,58 @@ runinfo: ${RINF} ${RIDS}
 	@ls -lh ${RINF}
 	@ls -lh ${RIDS}
 
-runbatch: runinfo
-	cat ${RIDS} | parallel --lb make run ACC=${ACC}  SRR={}
-	mkdir -p $(dir ${ALL_VCF})
-	bcftools merge -o ${ALL_VCF} $(dir ${VCF})*.vcf.gz
-	bcftools index -t ${ALL_VCF}
+fastqbatch:
 
-annotate:
-	mkdir -p $(dir ${SNPEFF})data/${ACC}
-	bio fetch ${ACC} > $(dir ${SNPEFF})data/${ACC}/genes.gbk
-	if grep -q ${ACC} ${SNPEFF}; \
-	then \
-		echo "exists in database"; \
-	else \
-		echo "${ACC}.genome : ${ACC}" >> ${SNPEFF}; \
-		echo "${ACC}.reference : ${ACC}" >> ${SNPEFF}; \
-		echo "${ACC}.chromosomes : ${ACC}" >> ${SNPEFF}; \
-	fi
-	snpEff build -genbank -v ${ACC}
-	snpEff dump ${ACC}
-	snpEff ${ACC} ${ALL_VCF} -stats ${ANN_STATS} > ${ALL_VCF_ANN}
+	mkdir -p $(dir ${R1})
+
+	#download data from SRA
+	cat ${RIDS} | parallel --progress -j 3 fastq-dump -O $(dir ${R1}) -X ${N} --split-files {}
+
+	#run fastqc
+	cat ${RIDS} | parallel --progress fastqc $(dir ${R1})/{}_1.fastq $(dir ${R1})/{}_2.fastq
+
+trimbatch:
+
+	mkdir -p $(dir ${RT1})
+
+	#apply QC and trim
+	cat ${RIDS} | parallel --progress fastp --cut_tail -i $(dir ${R1}){}_1.fastq \
+	-I $(dir ${R1}){}_2.fastq -o $(dir ${RT1}){}_1.trim.fq -O $(dir ${RT1}){}_2.trim.fq
+
+	#run fastqc on trimmed reads
+	cat ${RIDS} | parallel --progress fastqc $(dir ${RT1}){}_1.trim.fq $(dir ${RT1}){}_2.trim.fq
+
+alignbatch:
+
+	mkdir -p $(dir ${BAM})
+
+	#align reads to reference genome
+	
+	for line in $$(cat ${RIDS}); \
+	do \
+		echo "Processing $$line"; \
+		bwa mem ${REF} $(dir ${RT1})$${line}_1.trim.fq $(dir ${RT1})$${line}_2.trim.fq | \
+		samtools sort > $(dir ${BAM})$${line}_${ACC}_${PRJN}.bam; \
+		samtools index $(dir ${BAM})$${line}_${ACC}_${PRJN}.bam; \
+		samtools flagstat $(dir ${BAM})$${line}_${ACC}_${PRJN}.bam; \
+	done
+
+vcfbatch:
+	mkdir -p $(dir ${ALL_VCF})
+
+
+	bcftools mpileup \
+		--annotate 'INFO/AD,FORMAT/DP,FORMAT/AD,FORMAT/ADF,FORMAT/ADR,FORMAT/SP' \
+		-O v -f ${REF} $(dir ${BAM})*_${ACC}_${PRJN}.bam | \
+		bcftools call --ploidy 2 --annotate 'FORMAT/GQ' -mv -O v | \
+		bcftools norm -f ${REF} -d all -O z -o ${ALL_VCF} 
+
+runbatch: runinfo fastqbatch trimbatch alignbatch vcfbatch
 
 # Clean up all results.
 clean:
 	rm -rf dat out
-	
-	
+
+
 # Inform make that these targets are not files.
-.PHONY: genome index fastq trim align vcf run runinfo runbatch annotate merge clean
+.PHONY: genome index fastq trim align vcf run runinfo fastqbatch trimbatch vcfbatch merge clean

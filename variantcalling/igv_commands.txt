@@ -44,3 +44,31 @@ genome /home/aelia/scripts/variantcall/test1/data/refs/AF086833.fa
 load /home/aelia/scripts/variantcall/test1/data/alignments/SRR1553500.bam
 load /home/aelia/scripts/variantcall/test1/data/refs/AF086833.gff
 expand
+new
+genome dat/refs/AF086833.fa
+load dat/bam/SRR1972739_AF086833.bam
+load dat/refs/AF086833.gff
+expand
+new
+genome dat/refs/AF086833.fa
+load dat/bam/SRR1972739_AF086833.bam
+load dat/refs/AF086833.gff
+expand
+new
+genome dat/refs/AF086833.fa
+load dat/bam/SRR1553444_AF086833.bam
+load dat/refs/AF086833.gff
+expand
+new
+genome dat/refs/AF086833.fa
+load dat/bam/SRR1553444_AF086833.bam
+load dat/bam/SRR1553444_AF086833.bedgraph
+load dat/refs/AF086833.gff
+expand
+new
+genome dat/refs/AF086833.fa
+load dat/bam/SRR1553444_AF086833.bam
+load dat/bam/SRR1553444_AF086833.bedgraph
+load dat/bam/SRR1553444_AF086833.bw
+load dat/refs/AF086833.gff
+expand

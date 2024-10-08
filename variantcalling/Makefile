@@ -3,7 +3,7 @@
 #
 
 # Set SRA number
-SRR ?= SRR1972739
+SRR ?= SRR1553444
 
 # The accession number.
 ACC ?= AF086833
@@ -40,6 +40,8 @@ RT2 = dat/qc/${SRR}_2.trim.fq
 
 # The resulting alignment file.
 BAM = dat/bam/${SRR}_${ACC}.bam
+BED = dat/bam/${SRR}_${ACC}.bedgraph
+BW = dat/bam/${SRR}_${ACC}.bw
 
 # The resulting variant file.
 VCF = out/vcf/${SRR}_${ACC}.vcf.gz
@@ -67,15 +69,19 @@ help:
 	@echo "#"
 	@echo "# make annotate ACC=${ACC} PRJN=${PRJN}"
 	@echo "#"
-	@echo "# make init - initialize the genome."
+	@echo "# make visualize ACC=${ACC} SRR=${SRR}"
 	@echo "#"
-	@echo "# make run - get fastq, trim, align, and call variants."
+	@echo "# init - initialize the genome."
 	@echo "#"
-	@echo "# make runbatch - fastq, trim, align, and call variants based on PRJN bioproject number."
+	@echo "# run - get fastq, trim, align, and call variants."
 	@echo "#"
-	@echo "# make annotate - creates custom annotation based on ACC number."
+	@echo "# runbatch - fastq, trim, align, and call variants based on PRJN bioproject number."
 	@echo "#"
-	@echo "# make clean - remove all files created."
+	@echo "# annotate - creates custom annotation based on ACC number."
+	@echo "#"
+	@echo "# visualize - visualize alignment using IGV"
+	@echo "#"
+	@echo "# clean - remove all files created."
 	@echo "#"
 
 
@@ -212,10 +218,19 @@ annotate:
 	snpEff dump ${ACC}
 	snpEff ${ACC} ${ALL_VCF} -stats ${ANN_STATS} > ${ALL_VCF_ANN}
 
+
+visualize:
+#Visualize
+	bedtools genomecov -ibam ${BAM}  -g ${REF}.fai -bg > ${BED}
+	bedGraphToBigWig ${BED} ${REF}.fai ${BW}
+	echo -e "new\ngenome ${REF}\nload ${BAM}\nload ${BED}\nload ${BW}\nload ${GFF}\nexpand" >> igv_commands.txt
+
+	bash ${HOME}/IGV/igv.sh -b igv_commands.txt -p 60151
+
 # Clean up all results.
 clean:
 	rm -rf dat out
 	
 	
 # Inform make that these targets are not files.
-.PHONY: genome index fastq trim align vcf run runinfo runbatch annotate merge clean
+.PHONY: genome index fastq trim align vcf run runinfo runbatch annotate visualize merge clean

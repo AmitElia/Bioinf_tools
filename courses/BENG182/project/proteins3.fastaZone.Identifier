@@ -1,0 +1,4 @@
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=https://www.ncbi.nlm.nih.gov/protein?LinkName=nuccore_protein&from_uid=1798174254
+HostUrl=https://www.ncbi.nlm.nih.gov/sviewer/viewer.cgi?tool=portal&save=file&log$=seqview&db=protein&report=fasta&query_key=11&filter=all&sort=ACCN&extrafeat=undefined&showgi=1

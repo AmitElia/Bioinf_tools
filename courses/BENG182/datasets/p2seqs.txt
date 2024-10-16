@@ -1,0 +1,5 @@
+>p1seq1
+ACG
+
+>p1seq2
+TCCG

@@ -221,7 +221,7 @@ annotate:
 
 visualize:
 #Visualize
-	bedtools genomecov -ibam ${BAM}  -g ${REF}.fai -bg > ${BED}
+	bedtools genomecov -ibam ${BAM} -g ${REF}.fai -bg > ${BED}
 	bedGraphToBigWig ${BED} ${REF}.fai ${BW}
 	echo -e "new\ngenome ${REF}\nload ${BAM}\nload ${BED}\nload ${BW}\nload ${GFF}\nexpand" >> igv_commands.txt
 

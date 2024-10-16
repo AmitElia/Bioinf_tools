@@ -1,0 +1,3 @@
+alignment/NA12878_child.sorted.bam
+alignment/NA12878_father.sorted.bam
+alignment/NA12878_mother.sorted.bam

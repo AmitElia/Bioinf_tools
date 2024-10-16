@@ -72,3 +72,10 @@ load dat/bam/SRR1553444_AF086833.bedgraph
 load dat/bam/SRR1553444_AF086833.bw
 load dat/refs/AF086833.gff
 expand
+new
+genome dat/refs/AF086833.fa
+load dat/bam/SRR1553444_AF086833.bam
+load dat/bam/SRR1553444_AF086833.bedgraph
+load dat/bam/SRR1553444_AF086833.bw
+load dat/refs/AF086833.gff
+expand
